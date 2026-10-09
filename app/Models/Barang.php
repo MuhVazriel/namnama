@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Barang extends Model
 {
     protected $fillable = [
+        'kode_barang',
         'nama_barang',
+        'kategori_id',
         'stok',
+        'kondisi',
+        'status',
     ];
+
+    public function kategori()
+    {
+        return $this->belongsTo(Kategori::class);
+    }
 }

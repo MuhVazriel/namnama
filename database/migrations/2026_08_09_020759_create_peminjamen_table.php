@@ -10,12 +10,17 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('peminjamen', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('peminjamen', function (Blueprint $table) {
+        $table->id();
+        $table->string('nama_peminjam');
+        $table->string('barang');
+        $table->date('tanggal_pinjam');
+        $table->date('tanggal_kembali')->nullable();
+        $table->string('status')->default('dipinjam');
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.

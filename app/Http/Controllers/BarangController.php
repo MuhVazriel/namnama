@@ -5,12 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Barang;
 use App\Models\Kategori;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BarangController extends Controller
 {
     public function index()
     {
-        $barangs = Barang::with('kategori')->get();
+        $barangs = Barang::query()
+            ->with('kategori')
+            ->withSum([
+                'peminjamans as stok_dipinjam' => fn ($query) => $query->where('status', 'dipinjam'),
+            ], 'jumlah')
+            ->get();
 
         return view('barang.index', compact('barangs'));
     }
@@ -20,6 +27,38 @@ class BarangController extends Controller
         $kategoris = Kategori::orderBy('nama_kategori')->get();
 
         return view('barang.create', compact('kategoris'));
+    }
+
+    public function deleteForm()
+    {
+        $barangs = Barang::query()->orderBy('id')->get(['id', 'nama_barang', 'kode_barang']);
+
+        return view('barang.delete', compact('barangs'));
+    }
+
+    public function destroyById(Request $request)
+    {
+        $validated = $request->validate([
+            'barang_id' => ['required', 'integer', 'exists:barangs,id'],
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $barang = Barang::query()
+                ->lockForUpdate()
+                ->findOrFail($validated['barang_id']);
+
+            if ($barang->peminjamans()->where('status', 'dipinjam')->exists()) {
+                throw ValidationException::withMessages([
+                    'barang_id' => 'Barang ini masih dipinjam dan belum bisa dihapus.',
+                ]);
+            }
+
+            $barang->delete();
+        });
+
+        return redirect()
+            ->route('barang.index')
+            ->with('success', 'Barang berhasil dihapus.');
     }
 
     public function store(Request $request)
